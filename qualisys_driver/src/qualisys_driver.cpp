@@ -73,6 +73,7 @@ Quaternion matrixToQuaternion(float* matrix) {
 
 void QualisysDriver::set_settings_qualisys()
 {
+  
 }
 
 void QualisysDriver::loop()
@@ -130,7 +131,7 @@ void QualisysDriver::process_packet(CRTPacket * const packet)
   }
 
   if (mocap_markers_pub_->get_subscription_count() > 0) {
-    mocap4r2_msgs::msg::Markers markers_msg;
+    mocap_msgs::msg::Markers markers_msg;
     markers_msg.header.frame_id = "map";
     markers_msg.header.stamp = rclcpp::Clock().now();
     markers_msg.frame_number = frame_number;
@@ -138,7 +139,7 @@ void QualisysDriver::process_packet(CRTPacket * const packet)
     for (unsigned int i = 0; i < marker_count; ++i) {
       float x, y, z;
       packet->Get3DMarker((float)i, x, y, z);
-      mocap4r2_msgs::msg::Marker this_marker;
+      mocap_msgs::msg::Marker this_marker;
       this_marker.marker_index = i;
       this_marker.translation.x = x / 1000;
       this_marker.translation.y = y / 1000;
@@ -152,13 +153,13 @@ void QualisysDriver::process_packet(CRTPacket * const packet)
   }
 
   if (mocap_rigid_bodies_pub_->get_subscription_count() > 0) {
-    mocap4r2_msgs::msg::RigidBodies msg_rb;
+    mocap_msgs::msg::RigidBodies msg_rb;
     msg_rb.header.frame_id = "map";
     msg_rb.header.stamp = rclcpp::Clock().now();
     msg_rb.frame_number = frame_number;
 
     for (unsigned int i = 0; i < rb_count; i++) {
-      mocap4r2_msgs::msg::RigidBody rb;
+      mocap_msgs::msg::RigidBody rb;
 
       float x, y, z;
       float rot_matrix[9];
@@ -166,7 +167,7 @@ void QualisysDriver::process_packet(CRTPacket * const packet)
       packet->Get6DOFBody(i, x, y, z, rot_matrix);
       Quaternion quaternion = matrixToQuaternion(rot_matrix);
 
-      rb.rigid_body_name = std::to_string(i);
+      rb.rigid_body_name = RB_name_[i];
       rb.pose.position.x = x / 1000;
       rb.pose.position.y = y / 1000;
       rb.pose.position.z = z / 1000;
@@ -229,10 +230,10 @@ CallbackReturnT QualisysDriver::on_configure(const rclcpp_lifecycle::State &)
   client_change_state_ = this->create_client<lifecycle_msgs::srv::ChangeState>(
     "/qualisys_driver/change_state");
 
-  mocap_markers_pub_ = create_publisher<mocap4r2_msgs::msg::Markers>(
+  mocap_markers_pub_ = create_publisher<mocap_msgs::msg::Markers>(
     "/markers", 100);
 
-  mocap_rigid_bodies_pub_ = create_publisher<mocap4r2_msgs::msg::RigidBodies>(
+  mocap_rigid_bodies_pub_ = create_publisher<mocap_msgs::msg::RigidBodies>(
     "rigid_bodies", rclcpp::QoS(1000));
 
   update_pub_ = create_publisher<std_msgs::msg::Empty>(
@@ -255,6 +256,20 @@ CallbackReturnT QualisysDriver::on_activate(const rclcpp_lifecycle::State &)
   bool success = connect_qualisys();
 
   if (success) {
+
+
+    int RB_num = port_protocol_.Get6DOFBodyCount();
+    RB_name_.resize(RB_num);
+    for(int i =0; i < RB_num; i++)
+    {
+      RB_name_[i] = std::string(port_protocol_.Get6DOFBodyName(i));
+      RCLCPP_INFO(get_logger(),"The RB at index %d has name %s",i,RB_name_[i].c_str());
+    }
+  
+    
+    
+    
+
     timer_ = this->create_wall_timer(100ms, std::bind(&QualisysDriver::loop, this));
 
     RCLCPP_INFO(get_logger(), "Activated!\n");
@@ -317,7 +332,7 @@ bool QualisysDriver::connect_qualisys()
   RCLCPP_WARN(
     get_logger(),
     "Trying to connect to Qualisys host at %s:%d", host_name_.c_str(), port_);
-
+      
   if (!port_protocol_.Connect(
       reinterpret_cast<const char *>(host_name_.data()), port_, 0, 1, 7))
   {
