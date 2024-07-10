@@ -26,6 +26,9 @@ Source workspace:
 ```
 source install/setup.bash
 ```
+
+Connect to the LAN. Go to wired settings, create a new profile, and give it a cool name. Go to the IPv4 tab and choose the manual method. Then, use 192.168.254.51 as the Address and 255.255.255.0 as the Netmask. Leave the gateway empty. Click apply, select that profile, and then check that you are connected to the LAN.
+
 Setup your qualisys configuration:
 ```
 mocap_ws/src/mocap4ros2_qualisys/qualisys_driver/config/qualisys_driver_params.yaml
