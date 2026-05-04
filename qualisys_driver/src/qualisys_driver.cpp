@@ -26,6 +26,7 @@
 #include <utility>
 #include "qualisys_driver/qualisys_driver.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
+#include "geometry_msgs/msg/transform_stamped.hpp"
 #include <iostream>
 #include <cmath>
 
@@ -180,6 +181,30 @@ void QualisysDriver::process_packet(CRTPacket * const packet)
     }
 
     mocap_rigid_bodies_pub_->publish(msg_rb);
+  }
+
+  if (publish_tf_ && mocap_rigid_bodies_pub_->get_subscription_count() > 0) {
+    for (unsigned int i = 0; i < rb_count; i++) {
+      geometry_msgs::msg::TransformStamped transform;
+      transform.header.stamp = rclcpp::Clock().now();
+      transform.header.frame_id = "map";
+      transform.child_frame_id = RB_name_[i];
+
+      float x, y, z;
+      float rot_matrix[9];
+      packet->Get6DOFBody(i, x, y, z, rot_matrix);
+      Quaternion quaternion = matrixToQuaternion(rot_matrix);
+
+      transform.transform.translation.x = x / 1000;
+      transform.transform.translation.y = y / 1000;
+      transform.transform.translation.z = z / 1000;
+      transform.transform.rotation.x = quaternion.x;
+      transform.transform.rotation.y = quaternion.y;
+      transform.transform.rotation.z = quaternion.z;
+      transform.transform.rotation.w = quaternion.w;
+
+      tf_broadcaster_->sendTransform(transform);
+    }
   }
 }
 
@@ -358,6 +383,7 @@ void QualisysDriver::initParameters()
   declare_parameter<std::string>("qos_reliability_policy", "best_effort");
   declare_parameter<int>("qos_depth", 10);
   declare_parameter<bool>("use_markers_with_id", true);
+  declare_parameter<bool>("publish_tf", false);
 
   get_parameter<std::string>("host_name", host_name_);
   get_parameter<int>("port", port_);
@@ -368,6 +394,7 @@ void QualisysDriver::initParameters()
   get_parameter<std::string>("qos_reliability_policy", qos_reliability_policy_);
   get_parameter<int>("qos_depth", qos_depth_);
   get_parameter<bool>("use_markers_with_id", use_markers_with_id_);
+  get_parameter<bool>("publish_tf", publish_tf_);
 
   RCLCPP_INFO(
     get_logger(),
@@ -396,4 +423,7 @@ void QualisysDriver::initParameters()
   RCLCPP_INFO(
     get_logger(),
     "Param use_markers_with_id: %s", use_markers_with_id_ ? "true" : "false");
+  RCLCPP_INFO(
+    get_logger(),
+    "Param publish_tf: %s", publish_tf_ ? "true" : "false");
 }
