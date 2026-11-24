@@ -133,7 +133,7 @@ void QualisysDriver::process_packet(CRTPacket * const packet)
 
   if (mocap_markers_pub_->get_subscription_count() > 0) {
     mocap_msgs::msg::Markers markers_msg;
-    markers_msg.header.frame_id = "map";
+    markers_msg.header.frame_id = "world";
     markers_msg.header.stamp = rclcpp::Clock().now();
     markers_msg.frame_number = frame_number;
 
@@ -155,7 +155,7 @@ void QualisysDriver::process_packet(CRTPacket * const packet)
 
   if (mocap_rigid_bodies_pub_->get_subscription_count() > 0) {
     mocap_msgs::msg::RigidBodies msg_rb;
-    msg_rb.header.frame_id = "map";
+    msg_rb.header.frame_id = "world";
     msg_rb.header.stamp = rclcpp::Clock().now();
     msg_rb.frame_number = frame_number;
 
@@ -183,11 +183,11 @@ void QualisysDriver::process_packet(CRTPacket * const packet)
     mocap_rigid_bodies_pub_->publish(msg_rb);
   }
 
-  if (publish_tf_ && mocap_rigid_bodies_pub_->get_subscription_count() > 0) {
+  if (publish_tf_ && rb_count > 0) {
     for (unsigned int i = 0; i < rb_count; i++) {
       geometry_msgs::msg::TransformStamped transform;
       transform.header.stamp = rclcpp::Clock().now();
-      transform.header.frame_id = "map";
+      transform.header.frame_id = "world";
       transform.child_frame_id = RB_name_[i];
 
       float x, y, z;
