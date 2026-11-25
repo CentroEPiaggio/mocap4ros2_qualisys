@@ -10,3 +10,4 @@ qualisys_driver_node:
     qos_reliability_policy: "best_effort"  # best_effort / reliable
     qos_depth: 10                         # 10 / 100 / 1000
     publish_tf: true                     # true / false 
+    update_period_ms: 10                 # one frame per period: 10 ms = 100 Hz (QTM capture >= 100 Hz)

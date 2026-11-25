@@ -295,7 +295,9 @@ CallbackReturnT QualisysDriver::on_activate(const rclcpp_lifecycle::State &)
     
     
 
-    timer_ = this->create_wall_timer(100ms, std::bind(&QualisysDriver::loop, this));
+    // one frame is requested per tick: the period sets the pose rate (QTM must capture at least as fast)
+    timer_ = this->create_wall_timer(
+      std::chrono::milliseconds(update_period_ms_), std::bind(&QualisysDriver::loop, this));
 
     RCLCPP_INFO(get_logger(), "Activated!\n");
 
@@ -384,6 +386,7 @@ void QualisysDriver::initParameters()
   declare_parameter<int>("qos_depth", 10);
   declare_parameter<bool>("use_markers_with_id", true);
   declare_parameter<bool>("publish_tf", false);
+  declare_parameter<int>("update_period_ms", 100);
 
   get_parameter<std::string>("host_name", host_name_);
   get_parameter<int>("port", port_);
@@ -395,6 +398,7 @@ void QualisysDriver::initParameters()
   get_parameter<int>("qos_depth", qos_depth_);
   get_parameter<bool>("use_markers_with_id", use_markers_with_id_);
   get_parameter<bool>("publish_tf", publish_tf_);
+  get_parameter<int>("update_period_ms", update_period_ms_);
 
   RCLCPP_INFO(
     get_logger(),
@@ -426,4 +430,5 @@ void QualisysDriver::initParameters()
   RCLCPP_INFO(
     get_logger(),
     "Param publish_tf: %s", publish_tf_ ? "true" : "false");
+  RCLCPP_INFO(get_logger(), "Param update_period_ms: %d", update_period_ms_);
 }
